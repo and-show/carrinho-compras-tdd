@@ -1,0 +1,57 @@
+# Nome do Workflow
+name: CI/CD - Python Shopping Cart
+
+# Gatilhos (Triggers): quando a Action deve rodar
+on:
+  push:
+    branches: [ "main" ] # Roda quando há um push na branch main
+  pull_request:
+    branches: [ "main" ] # Roda quando um Pull Request é aberto para a main
+
+# Permissões necessárias para o deploy no GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Definição dos Jobs (tarefas a serem executadas)
+jobs:
+  # Job 1: Build e Teste
+  build-and-test:
+    runs-on: ubuntu-latest # O tipo de máquina que vai rodar o job
+    
+    steps: # Sequência de passos a serem executados
+      - name: 1. Checkout do código
+        uses: actions/checkout@v4 # Action que baixa o código do seu repositório
+
+      - name: 2. Configurar ambiente Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # Define a versão do Python
+
+      - name: 3. Executar os testes
+        run: |
+          python -m unittest discover -v # Comando que executa todos os testes
+
+      - name: 4. Preparar artefato para deploy
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Faz o upload do conteúdo da raiz do projeto para o artefato do deploy
+          path: '.' 
+
+  # Job 2: Deploy no GitHub Pages
+  deploy:
+    # O job de deploy só roda se o job 'build-and-test' for bem-sucedido
+    needs: build-and-test
+
+    # Configurações específicas para o ambiente de deploy do GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }} # URL da página implantada
+
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 1. Fazer o deploy no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # Action que faz o deploy do artefato
